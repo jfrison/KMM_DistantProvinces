@@ -1,0 +1,273 @@
+namespace = KMMdist
+
+# In case capital has been changed, refresh its distance to 0
+province_event = {
+	id = KMMdist.1
+	title = "KMMdist_1_title"
+	desc = "KMMdist_1_desc"
+	picture = CULTURE_eventPicture
+	hidden = yes
+
+	trigger = {
+		is_capital = yes
+		OR = {
+			check_variable = { which = KMM_distance value = 1 }
+			NOT = { has_province_flag = KMM_computeddistance }
+		}
+	}
+	immediate = {
+		hidden_effect = {
+			set_variable = { which = KMM_distance value = 0 }
+			set_province_flag = KMM_computeddistance
+		}
+	}
+
+	option = {
+		name = "KMMdist_ok"
+	}
+}
+
+# A non-capital province with 0/undefined distance means that's not computed yet, just default to 999
+province_event = {
+	id = KMMdist.2
+	title = "KMMdist_2_title"
+	desc = "KMMdist_2_desc"
+	picture = CULTURE_eventPicture
+	hidden = yes
+
+	trigger = {
+		is_capital = no
+		OR = {
+			NOT = { check_variable = { which = KMM_distance value = 1 } }
+			NOT = { has_province_flag = KMM_computeddistance }
+		}
+	}
+	immediate = {
+		hidden_effect = {
+			set_variable = { which = KMM_distance value = 999 }
+			clr_province_flag = KMM_computeddistance
+		}
+	}
+
+	option = {
+		name = "KMMdist_ok"
+	}
+}
+
+# If an undefined province has a well-defined neighbour we can update
+province_event = {
+	id = KMMdist.3
+	title = "KMMdist_3_title"
+	desc = "KMMdist_3_desc"
+	picture = CULTURE_eventPicture
+	hidden = yes
+
+	trigger = {
+		OR = {
+			NOT = { has_province_flag = KMM_computeddistance }
+			check_variable = { which = KMM_distance value = 999 } 
+		}
+		any_neighbor_province = { 
+			owned_by = ROOT
+			has_province_flag = KMM_computeddistance
+			NOT = { check_variable = { which = KMM_distance value = 999 } } 
+		}
+	}
+	immediate = {
+		hidden_effect = {
+			every_neighbor_province = { # Min(neighbours)+1
+				if = {
+					limit = { # warning: is the limit recomputed for each province iteration?
+						owned_by = ROOT
+						has_province_flag = KMM_computeddistance
+						NOT = { check_variable = { which = KMM_distance which = PREV } } 
+					}
+					PREV = { 
+						set_variable = { which = KMM_distance which = PREV } 
+						change_variable = { which = KMM_distance value = 1 }
+						set_province_flag = KMM_computeddistance
+					}
+				}
+			}
+			# every_neighbor_province = { # force the propagation to make it faster
+				# limit = {
+					# owned_by = ROOT
+					# NOT = { has_province_flag = KMM_computeddistance } 
+				# }
+				# province_event = { id = KMMdist.3 days = 1 }
+			# }
+		}
+	}
+
+	option = {
+		name = "KMMdist_ok"
+	}
+}
+
+# checks whether we've finished
+country_event = {
+	id = KMMdist.4
+	title = "KMMdist_4_title"
+	desc = "KMMdist_4_desc"
+	picture = CULTURE_eventPicture
+	hidden = yes
+
+	trigger = {
+		# no computed province has an non-computed neighbor
+		# it allows for clusters of oversea provinces which will never be computed
+		all_owned_province = { 
+			OR = {
+				has_province_flag = KMM_computeddistance
+				all_neighbor_province = { # no valid neighbor for computation
+					OR = {
+						NOT = { owned_by = ROOT }
+						NOT = { has_province_flag = KMM_computeddistance }
+					}
+				}
+			}
+		}
+	}
+	immediate = {
+		hidden_effect = {
+			set_country_flag = KMM_computeddistances
+		}
+	}
+
+	option = {
+		name = "KMMdist_ok"
+	}
+}
+
+# FIXME: need more events to update well-defined provinces, or we should erase periodically. 
+# And do not erase any modifier while we don't have country flag KMM_computeddistances (all those flags being erased before recomputing)
+
+# sets modifiers
+province_event = {
+	id = KMMdist.100
+	title = "KMMdist_100_title"
+	desc = "KMMdist_100_desc"
+	picture = CULTURE_eventPicture
+	hidden = yes
+
+	trigger = {
+		check_variable = { which = KMM_distance value = 3 }
+		NOT = { check_variable = { which = KMM_distance value = 5 } }
+		NOT = { has_province_modifier = KMM_distantprovince }
+		owner = { has_country_flag = KMM_computeddistances }
+	}
+	immediate = {
+		hidden_effect = {
+			add_province_modifier = { name = KMM_distantprovince duration = -1 }
+		}
+	}
+
+	option = {
+		name = "KMMdist_ok"
+	}
+}
+
+province_event = {
+	id = KMMdist.101
+	title = "KMMdist_101_title"
+	desc = "KMMdist_101_desc"
+	picture = CULTURE_eventPicture
+	hidden = yes
+
+	trigger = {
+		check_variable = { which = KMM_distance value = 5 }
+		NOT = { has_province_modifier = KMM_verydistantprovince }
+		owner = { has_country_flag = KMM_computeddistances }
+	}
+	immediate = {
+		hidden_effect = {
+			add_province_modifier = { name = KMM_verydistantprovince duration = -1 }
+		}
+	}
+
+	option = {
+		name = "KMMdist_ok"
+	}
+}
+
+# clears modifiers
+province_event = {
+	id = KMMdist.102
+	title = "KMMdist_102_title"
+	desc = "KMMdist_102_desc"
+	picture = CULTURE_eventPicture
+	hidden = yes
+
+	trigger = {
+		NOT = { check_variable = { which = KMM_distance value = 3 } }
+		has_province_modifier = KMM_distantprovince
+		owner = { has_country_flag = KMM_computeddistances }
+	}
+
+	immediate = {
+		hidden_effect = {
+			remove_province_modifier = KMM_distantprovince
+		}
+	}
+
+	option = {
+		name = "KMMdist_ok"
+	}
+}
+province_event = {
+	id = KMMdist.103
+	title = "KMMdist_103_title"
+	desc = "KMMdist_103_desc"
+	picture = CULTURE_eventPicture
+	hidden = yes
+
+	trigger = {
+		NOT = { check_variable = { which = KMM_distance value = 5 } }
+		has_province_modifier = KMM_verydistantprovince
+		owner = { has_country_flag = KMM_computeddistances }
+	}
+
+	immediate = {
+		hidden_effect = {
+			remove_province_modifier = KMM_verydistantprovince
+		}
+	}
+
+	option = {
+		name = "KMMdist_ok"
+	}
+}
+
+# forces update once in a while
+country_event = {
+	id = KMMdist.104
+	title = "KMMdist_104_title"
+	desc = "KMMdist_104_desc"
+	picture = CULTURE_eventPicture
+	hidden = yes
+
+	trigger = {
+		has_country_flag = KMM_computeddistances
+		had_country_flag = {
+			flag = KMM_computeddistances
+			days = 3650
+		}
+	}
+
+	immediate = {
+		hidden_effect = {
+			clr_country_flag = KMM_computeddistances
+			every_owned_province = {
+				clr_province_flag = KMM_computeddistance
+				set_variable = { which = KMM_distance value = 999 }
+			}
+			capital_scope = {
+				set_province_flag = KMM_computeddistance
+				set_variable = { which = KMM_distance value = 0 }
+			}
+		}
+	}
+
+	option = {
+		name = "KMMdist_ok"
+	}
+}

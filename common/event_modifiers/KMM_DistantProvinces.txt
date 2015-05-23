@@ -1,0 +1,9 @@
+KMM_distantprovince = {
+	local_autonomy = 0.05
+	local_missionary_strength = -0.002
+}
+
+KMM_verydistantprovince = {
+	local_autonomy = 0.10
+	local_missionary_strength = -0.005
+}
